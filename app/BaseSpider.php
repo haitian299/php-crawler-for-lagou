@@ -26,13 +26,40 @@ abstract class BaseSpider
     protected $options = [
         'headers' => [
             'Accept-Language' => 'zh-CN,zh;q=0.8,en;q=0.6',
-            'User-Agent'      => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.87 Safari/537.36',
             'Accept-Encoding' => 'gzip, deflate, sdch',
             'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Host'            => 'www.lagou.com',
             'Referer'         => 'http://www.lagou.com/zhaopin/',
 //            'Cookie'          => 'tencentSig=5138582528; LGUID=20160316004014-97ccc94e-eacc-11e5-b07c-5254005c3644; user_trace_token=20160316004014-fc64a971bbdd4de5bfb7770def055162; tencentSig=6656587776; index_location_city=%E5%85%A8%E5%9B%BD; LGMOID=20160330113123-EF33C3FE5258CD34E313540B7F87ED24; HISTORY_POSITION=1653176%2C4k-6k%2C%E5%85%AD%E7%A7%A6%E4%BA%92%E5%8A%A8%2CUI%E8%AE%BE%E8%AE%A1%E5%B8%88%7C893951%2C18k-25k%2C%E5%8C%97%E5%A4%A7%E5%8C%BB%E4%BF%A1%2CJava%EF%BC%88XAP%E9%A1%B9%E7%9B%AE%E7%BB%84%EF%BC%89%7C1653417%2C16k-32k%2C%E7%99%BE%E5%BA%A6%2CJava%7C1455021%2C20k-35k%2C%E5%92%8C%E5%88%9B%E7%A7%91%E6%8A%80%EF%BC%88%E7%BA%A2%E5%9C%88%E8%90%A5%E9%94%80%EF%BC%89%2CJava%7C1652980%2C10k-18k%2C%E7%9E%AC%E8%81%94%E8%BD%AF%E4%BB%B6%E7%A7%91%E6%8A%80%EF%BC%88%E5%8C%97%E4%BA%AC%EF%BC%89%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8%2CJava%7C; JSESSIONID=8910266B4C5C498C4AED48B462C45F71; PRE_UTM=; PRE_HOST=; PRE_SITE=; PRE_LAND=https%3A%2F%2Fpassport.lagou.com%2Flogin%2Flogin.html%3Fts%3D1459511285429%26serviceId%3Dlagou%26service%3Dhttp%25253A%25252F%25252Fwww.lagou.com%25252Fjobs%25252FpositionAjax.json%252525253Fkd%25253D%252525E6%25252595%252525B0%252525E6%2525258D%252525AE%252525E4%252525BB%25252593%252525E5%252525BA%25252593%252526%26action%3Dlogin%26signature%3D2ED608B0CE1F7F389E006B8FEB2340DE; SEARCH_ID=bb23b4d953cf4df6b13774bcdadc428f; _gat=1; Hm_lvt_4233e74dff0ae5bd0a3d81c6ccf756e6=1458196220,1458304635,1458662009,1458748964; Hm_lpvt_4233e74dff0ae5bd0a3d81c6ccf756e6=1459511983; _ga=GA1.2.660112600.1458060014; LGSID=20160401194805-98e95b82-f7ff-11e5-bac1-5254005c3644; LGRID=20160401195943-38d7ed79-f801-11e5-bac1-5254005c3644'
         ]
+    ];
+
+    protected $userAgents = [
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:2.0b8) Gecko/20100101 Firefox/4.0b8',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_5_8) AppleWebKit/534.24 (KHTML, like Gecko) Chrome/11.0.696.68 Safari/534.24',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_4) AppleWebKit/534.30 (KHTML, like Gecko) Chrome/12.0.742.100 Safari/534.30',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_6) AppleWebKit/534.24 (KHTML, like Gecko) Chrome/11.0.696.12 Safari/534.24',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_6) AppleWebKit/534.24 (KHTML, like Gecko) Chrome/11.0.698.0 Safari/534.24',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_7) AppleWebKit/534.24 (KHTML, like Gecko) Chrome/11.0.696.68 Safari/534.24',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_0) AppleWebKit/534.24 (KHTML, like Gecko) Chrome/11.0.696.0 Safari/534.24',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X; U; en; rv:1.8.0) Gecko/20060728 Firefox/1.5.0 Opera 9.27',
+        'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-GB; rv:1.9.0.6) Gecko/2009011912 Firefox/3.0.6',
+        'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9.0.10) Gecko/2009122115 Firefox/3.0.17',
+        'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9.0.6) Gecko/2009011912 Firefox/3.0.6',
+        'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9.1b3pre) Gecko/20090204 Firefox/3.1b3pre',
+        'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9.1b4) Gecko/20090423 Firefox/3.5b4 GTB5',
+        'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; fr; rv:1.9.1b4) Gecko/20090423 Firefox/3.5b4',
+        'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; it; rv:1.9b4) Gecko/2008030317 Firefox/3.0b4',
+        'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; ko; rv:1.9.1b2) Gecko/20081201 Firefox/3.1b2',
+        'Mozilla/5.0 (Windows; U; Windows NT 5.1; en) AppleWebKit/526.9 (KHTML, like Gecko) Version/4.0dp1 Safari/526.8',
+        'Mozilla/5.0 (Windows; U; Windows NT 6.0; en-us) AppleWebKit/531.9 (KHTML, like Gecko) Version/4.0.3 Safari/531.9',
+        'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US) AppleWebKit/532+ (KHTML, like Gecko) Version/4.0.2 Safari/530.19.1',
+        'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_5_7; en-us) AppleWebKit/531.2+ (KHTML, like Gecko) Version/4.0.1 Safari/530.18',
+        'Mozilla/5.0 (Windows; U; Windows NT 6.0; ru-RU) AppleWebKit/528.16 (KHTML, like Gecko) Version/4.0 Safari/528.16',
+        'Mozilla/5.0 (Windows; U; Windows NT 5.1; cs-CZ) AppleWebKit/525.28.3 (KHTML, like Gecko) Version/3.2.3 Safari/525.29',
+        'Mozilla/5.0 (X11; U; Linux i686 (x86_64); en-US) AppleWebKit/532.0 (KHTML, like Gecko) Chrome/4.0.202.2 Safari/532.0',
+        'Mozilla/5.0 (Windows; U; Windows NT 5.2; en-US) AppleWebKit/525.13 (KHTML, like Gecko) Chrome/0.2.149.27 Safari/525.13',
+        'Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US) AppleWebKit/525.13 (KHTML, like Gecko) Chrome/0.2.149.30 Safari/525.13'
     ];
 
     public function __construct()
@@ -67,10 +94,18 @@ abstract class BaseSpider
         //
     }
 
+    protected function getOptions()
+    {
+        $options = $this->options;
+        $userAgent = $this->userAgents[array_rand($this->userAgents)];
+        $options['headers']['User-Agent'] = $userAgent;
+        return $options;
+    }
+
     protected function getUrlContent($url, $options = null)
     {
         if (empty($options)) {
-            $options = $this->options;
+            $options = $this->getOptions();
         }
         $guzzle = new Guzzle();
         $response = $guzzle->request('GET', $url, $options);
