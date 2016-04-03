@@ -76,6 +76,8 @@ abstract class BaseSpider
         $response = $guzzle->request('GET', $url, $options);
         if ($response->getStatusCode() != 200) {
             echo("failed to get url content of {$url} with code {$response->getStatusCode()}\n");
+            $this->getRedisClient()->rpush($this->requestQueue, $url);
+            die("probably caused by anti crawler program, push url back to request queue\n");
         }
         $this->getRedisClient()->sadd($this->alreadyRequestedUrlSet, $url);
 
