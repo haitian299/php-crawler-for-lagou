@@ -110,7 +110,7 @@ abstract class BaseSpider
     {
         $proxy = $this->getRedisClient()->rpop($this->proxyQueue);
 
-        return 'tcp://' . $proxy;
+        return $proxy;
     }
 
     protected function getUrlContent($url, $options = null)

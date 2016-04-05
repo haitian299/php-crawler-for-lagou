@@ -530,15 +530,15 @@ class Spider extends BaseSpider
         $requestUrl = $this->getRedisClient()->rpop($this->requestQueue);
         if (!empty($requestUrl)) {
             if (preg_match($this->jobDetailPageUrlPattern, $requestUrl)) {
-                echo "start to parse job detail page\n";
+                echo "start to parse job detail page {$requestUrl}\n";
                 $this->parseJobDetailPage($requestUrl);
             } elseif (preg_match($this->companyDetailPageUrlPattern, $requestUrl)) {
-                echo "start to parse company detail page\n";
+                echo "start to parse company detail page {$requestUrl}\n";
                 $this->parseCompanyDetailPage($requestUrl);
             } else {
                 parse_str($requestUrl, $queryArray);
                 if (array_key_exists('pn', $queryArray)) {
-                    echo "start to parse job list page\n";
+                    echo "start to parse job list page {$requestUrl}\n";
                     $this->parseJobListAjaxUrl($requestUrl);
                 } else {
                     echo "start to parse job list page without page number {$requestUrl}\n";
@@ -561,7 +561,7 @@ class Spider extends BaseSpider
             $proxies = $jsonContent['result'];
             foreach ($proxies as $proxy) {
                 if($proxy['transfer_time'] < 1){
-                    $this->getRedisClient()->lpush($this->proxyQueue, $proxy['ip:port']);
+                    $this->getRedisClient()->lpush($this->proxyQueue, 'tcp://'.$proxy['ip:port']);
                 }
             }
         } else {
