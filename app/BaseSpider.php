@@ -109,7 +109,6 @@ abstract class BaseSpider
     protected function getProxy()
     {
         $proxy = $this->getRedisClient()->rpop($this->proxyQueue);
-        $this->getRedisClient()->lpush($this->proxyQueue, $proxy);
 
         return 'tcp://' . $proxy;
     }
@@ -127,6 +126,11 @@ abstract class BaseSpider
             die("probably caused by anti crawler program, push url back to request queue\n");
         }
         $this->getRedisClient()->sadd($this->alreadyRequestedUrlSet, $url);
+        if(key_exists('proxy', $options)){
+            if(!empty($options['proxy'])){
+                $this->getRedisClient()->lpush($this->proxyQueue, $options['proxy']);
+            }
+        }
 
         return $response->getBody()->getContents();
     }
