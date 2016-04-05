@@ -7,4 +7,6 @@
  */
 return [
     'maxConnectionCount' => 2,
+    'useProxy' => true,
+    'proxyApi' => getenv('PROXY_API')
 ];

@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use App\Models\Job;
 use App\Models\Company;
 use App\Models\Label;
+use GuzzleHttp\Client as Guzzle;
 
 class Spider extends BaseSpider
 {
@@ -398,8 +399,8 @@ class Spider extends BaseSpider
 
     protected function parseJobListAjaxUrl($url)
     {
-        $json_content = json_decode($this->getUrlContent($url));
-        $results = $json_content->content->result;
+        $jsonContent = json_decode($this->getUrlContent($url));
+        $results = $jsonContent->content->result;
         if (!empty($results)) {
             $formattedResults = $this->parseJobJsonArray($results);
             $jobsToSave = $formattedResults['jobs'];
@@ -549,6 +550,25 @@ class Spider extends BaseSpider
         }
     }
 
+    public function loadProxies()
+    {
+        $proxyApi = Config::get('setting.proxyApi');
+        if (!empty($proxyApi)) {
+            $guzzle = new Guzzle();
+            $response = $guzzle->request('GET', $proxyApi);
+            $content = $response->getBody()->getContents();
+            $jsonContent = json_decode($content, true);
+            $proxies = $jsonContent['result'];
+            foreach ($proxies as $proxy) {
+                if($proxy['transfer_time'] < 1){
+                    $this->getRedisClient()->lpush($this->proxyQueue, $proxy['ip:port']);
+                }
+            }
+        } else {
+            die("please set proxy api if you want to use proxy\n");
+        }
+    }
+
     public function dataPersistence()
     {
         Capsule::connection()->reconnect();
@@ -584,7 +604,7 @@ class Spider extends BaseSpider
                 for ($i = 0; $i < $connectionCount; $i++) {
                     $pid = pcntl_fork();
                     if ($pid == -1) {
-                        dump('failed to fork');
+                        echo "fail to fork\n";
                         exit(0);
                     }
 
@@ -619,6 +639,9 @@ class Spider extends BaseSpider
     public function bootstrap()
     {
         if (Capsule::table('log')->where('name', '=', 'bootstrap')->count() == 0) {
+            if (Config::get('setting.useProxy')) {
+                $this->loadProxies();
+            }
             $this->crawlJobType();
             $this->crawlFilterParameters();
             $this->log('bootstrap');
