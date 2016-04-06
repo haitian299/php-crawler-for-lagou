@@ -9,5 +9,6 @@ return [
     'maxConnectionCount' => 2,
     'useProxy' => true,
     'proxyApi' => getenv('PROXY_API'),
-    'proxyMinimumCount' => 100
+    'proxyMinimumCount' => 100,
+    'connectTimeOut' => 8, //Use 0 to wait indefinitely
 ];

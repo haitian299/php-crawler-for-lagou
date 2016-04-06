@@ -7,6 +7,7 @@
  * Time: 下午2:24
  */
 use GuzzleHttp\Client as Guzzle;
+use GuzzleHttp\Exception\ConnectException;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Predis\Client as Redis;
 
@@ -68,6 +69,7 @@ abstract class BaseSpider
         if (empty($this->maxConnectionCount)) {
             $this->maxConnectionCount = Config::get('setting.maxConnectionCount');
         }
+        $this->options['connect_timeout'] = Config::get('setting.connectTimeOut');
     }
 
     public function getRedisClient()
@@ -112,33 +114,38 @@ abstract class BaseSpider
             $this->loadProxies();
         }
         $proxy = $this->getRedisClient()->rpop($this->proxyQueue);
+        if (empty($proxy)) {
+            throw new \Exception("run out of proxy\n");
+        }
 
         return $proxy;
     }
 
     protected function getUrlContent($url, $options = null)
     {
-        if (empty($options)) {
-            $options = $this->getOptions();
-        }
-        dump($options);
-        $guzzle = new Guzzle();
-        $response = $guzzle->request('GET', $url, $options);
-        if ($response->getStatusCode() != 200) {
-            echo("failed to get url content of {$url} with code {$response->getStatusCode()}\n");
-            $this->getRedisClient()->rpush($this->requestQueue, $url);
-            echo("probably caused by anti crawler program, push url back to request queue\n");
-
-            return;
-        }
-        $this->getRedisClient()->sadd($this->alreadyRequestedUrlSet, $url);
-        if (key_exists('proxy', $options)) {
-            if (!empty($options['proxy'])) {
-                $this->getRedisClient()->lpush($this->proxyQueue, $options['proxy']);
+        try {
+            if (empty($options)) {
+                $options = $this->getOptions();
             }
-        }
+            dump($options);
+            $guzzle = new Guzzle();
+            $response = $guzzle->request('GET', $url, $options);
+            if ($response->getStatusCode() != 200) {
+                throw new \Exception("failed to get url content of {$url} with code {$response->getStatusCode()}\n");
+            }
+            $this->getRedisClient()->sadd($this->alreadyRequestedUrlSet, $url);
+            if (key_exists('proxy', $options)) {
+                if (!empty($options['proxy'])) {
+                    $this->getRedisClient()->lpush($this->proxyQueue, $options['proxy']);
+                }
+            }
 
-        return $response->getBody()->getContents();
+            return $response->getBody()->getContents();
+        } catch (\Exception $e) {
+            $this->getRedisClient()->rpush($this->requestQueue, $url);
+            echo $e->getMessage();
+            exit(0);
+        }
     }
 
     public function initRequestQueue($url = null)

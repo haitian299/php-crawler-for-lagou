@@ -484,7 +484,7 @@ class Spider extends BaseSpider
     {
         $attributes = [];
         $crawler = new Crawler($this->getUrlContent($url));
-        $attributes['id'] = intval($crawler->filterXPath('//input[@id="jobid"]')->attr('value'));
+        $attributes['id'] = intval(filter_var($url, FILTER_SANITIZE_NUMBER_INT));
         $attributes['address'] = trim($crawler->filterXPath('//dl[@class="job_company"]/dd[1]/div[1]')->text());
         $rawDetail = $crawler->filterXPath('//dd[@class="job_bt"]')->html();
         $attributes['detail'] = trim(str_replace('<h3 class="description">职位描述</h3>', '', $rawDetail));
