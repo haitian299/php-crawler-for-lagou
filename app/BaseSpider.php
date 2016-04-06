@@ -108,11 +108,10 @@ abstract class BaseSpider
 
     protected function getProxy()
     {
-        $proxy = $this->getRedisClient()->rpop($this->proxyQueue);
-        if (empty($proxy)) {
+        if ($this->getRedisClient()->llen($this->proxyQueue) < Config::get('setting.proxyMinimumCount')) {
             $this->loadProxies();
-            $proxy = $this->getRedisClient()->rpop($this->proxyQueue);
         }
+        $proxy = $this->getRedisClient()->rpop($this->proxyQueue);
 
         return $proxy;
     }
