@@ -109,6 +109,10 @@ abstract class BaseSpider
     protected function getProxy()
     {
         $proxy = $this->getRedisClient()->rpop($this->proxyQueue);
+        if (empty($proxy)) {
+            $this->loadProxies();
+            $proxy = $this->getRedisClient()->rpop($this->proxyQueue);
+        }
 
         return $proxy;
     }
@@ -118,16 +122,19 @@ abstract class BaseSpider
         if (empty($options)) {
             $options = $this->getOptions();
         }
+        dump($options);
         $guzzle = new Guzzle();
         $response = $guzzle->request('GET', $url, $options);
         if ($response->getStatusCode() != 200) {
             echo("failed to get url content of {$url} with code {$response->getStatusCode()}\n");
             $this->getRedisClient()->rpush($this->requestQueue, $url);
-            die("probably caused by anti crawler program, push url back to request queue\n");
+            echo("probably caused by anti crawler program, push url back to request queue\n");
+
+            return;
         }
         $this->getRedisClient()->sadd($this->alreadyRequestedUrlSet, $url);
-        if(key_exists('proxy', $options)){
-            if(!empty($options['proxy'])){
+        if (key_exists('proxy', $options)) {
+            if (!empty($options['proxy'])) {
                 $this->getRedisClient()->lpush($this->proxyQueue, $options['proxy']);
             }
         }
