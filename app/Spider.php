@@ -569,10 +569,11 @@ class Spider extends BaseSpider
             $guzzle = new Guzzle();
             $response = $guzzle->request('GET', $proxyApi);
             $content = $response->getBody()->getContents();
-            preg_match_all('/(\d+)\.(\d+)\.(\d+)\.(\d+)\:(\d+)/', $content, $matches);
+            $jsonContent = json_decode($content, true);
+            $proxyArray = $jsonContent['result'];
             $proxies = [];
-            foreach($matches[0] as $match){
-                $proxies[] = 'tcp://'.$match;
+            foreach($proxyArray as $proxy){
+                $proxies[] = 'tcp://'.$proxy['ip:port'];
             }
             $this->getRedisClient()->lpush($this->proxyQueue, $proxies);
         } else {

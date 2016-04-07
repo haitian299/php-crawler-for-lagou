@@ -6,10 +6,10 @@
  * Time: 上午11:40
  */
 return [
-    'maxConnectionCount' => 8,
+    'maxConnectionCount' => 10,
     'useProxy' => true,
     'proxyApi' => getenv('PROXY_API'),
-    'proxyMinimumCount' => 30,
+    'proxyMinimumCount' => 100,
     'connectTimeOut' => 5, //Use 0 to wait indefinitely
     'responseTimeOut' => 5
 ];
