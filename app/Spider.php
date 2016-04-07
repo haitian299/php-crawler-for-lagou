@@ -493,7 +493,7 @@ class Spider extends BaseSpider
         } catch (\Exception $e) {
             echo "catch exception when parsing {$url}\n";
             echo $e->getMessage();
-            echo "line: ".$e->getLine();
+            echo "line: " . $e->getLine();
             $this->getRedisClient()->lpush($this->requestQueue, $url);
             exit(0);
         }
@@ -535,7 +535,7 @@ class Spider extends BaseSpider
         } catch (\Exception $e) {
             echo "catch exception when parsing {$url}\n";
             echo $e->getMessage();
-            echo "line: ".$e->getLine();
+            echo "line: " . $e->getLine();
             $this->getRedisClient()->lpush($this->requestQueue, $url);
             exit(0);
         }
@@ -576,8 +576,8 @@ class Spider extends BaseSpider
             $jsonContent = json_decode($content, true);
             $proxyArray = $jsonContent['result'];
             $proxies = [];
-            foreach($proxyArray as $proxy){
-                $proxies[] = 'tcp://'.$proxy['ip:port'];
+            foreach ($proxyArray as $proxy) {
+                $proxies[] = 'tcp://' . $proxy['ip:port'];
             }
             $this->getRedisClient()->lpush($this->proxyQueue, $proxies);
         } else {
@@ -609,6 +609,14 @@ class Spider extends BaseSpider
     public function run()
     {
         while (true) {
+            if ($this->getRedisClient()->exists('status')) {
+                if ($this->getRedisClient()->get('status') == $this->status['stop']) {
+                    die("stop");
+                }
+            } else {
+                $this->getRedisClient()->set('status', $this->status['run']);
+            }
+
             $requestQueueLength = $this->getRedisClient()->llen($this->requestQueue);
             if ($requestQueueLength == 0) {
                 echo "request queue is empty, finish\n";
@@ -635,7 +643,7 @@ class Spider extends BaseSpider
                     if (pcntl_wifexited($status)) {
                         $message = 'successfully';
                     }
-                    echo date("H:i:s")."--------process exit {$message}--------\n";
+                    echo date("H:i:s") . "--------process exit {$message}--------\n";
                 }
             } else {
                 echo "single process\n";
@@ -662,7 +670,7 @@ class Spider extends BaseSpider
         }
         $this->loadFilters();
         if (Config::get('setting.useProxy')) {
-            if($this->getRedisClient()->llen($this->proxyQueue) < Config::get('setting.proxyMinimumCount')){
+            if ($this->getRedisClient()->llen($this->proxyQueue) < Config::get('setting.proxyMinimumCount')) {
                 $this->loadProxies();
             }
         }
