@@ -589,20 +589,41 @@ class Spider extends BaseSpider
     {
         Capsule::connection()->reconnect();
         while (true) {
+            if ($this->getRedisClient()->get('status') == $this->status['stop']) {
+                die("stop");
+            }
             if ($this->getRedisClient()->llen($this->jobQueue) == 0) {
                 echo "all jobs are saved\n";
                 break;
             }
-            $job = json_decode($this->getRedisClient()->rpop($this->jobQueue), true);
-            $this->saveJobToDatabase($job);
+            try {
+                echo "saving job to database\n";
+                $job = json_decode($this->getRedisClient()->rpop($this->jobQueue), true);
+                $this->saveJobToDatabase($job);
+            } catch (\Exception $e) {
+                echo "catch error when saving job to database\n";
+                echo $e->getMessage();
+                die();
+            }
         }
         while (true) {
+            if ($this->getRedisClient()->get('status') == $this->status['stop']) {
+                die("stop");
+            }
             if ($this->getRedisClient()->llen($this->companyQueue) == 0) {
                 echo "all companies are saved\n";
                 break;
             }
-            $company = json_decode($this->getRedisClient()->rpop($this->companyQueue), true);
-            $this->saveCompanyToDatabase($company);
+            try{
+                echo "saving company to database\n";
+                $company = json_decode($this->getRedisClient()->rpop($this->companyQueue), true);
+                $this->saveCompanyToDatabase($company);
+            } catch (\Exception $e) {
+                echo "catch error when saving company to database\n";
+                echo $e->getMessage();
+                die();
+            }
+
         }
     }
 
