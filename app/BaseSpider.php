@@ -133,7 +133,6 @@ abstract class BaseSpider
             if (empty($options)) {
                 $options = $this->getOptions();
             }
-            dump($options);
             $guzzle = new Guzzle();
             $response = $guzzle->request('GET', $url, $options);
             if ($response->getStatusCode() != 200) {
