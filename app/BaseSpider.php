@@ -70,6 +70,7 @@ abstract class BaseSpider
             $this->maxConnectionCount = Config::get('setting.maxConnectionCount');
         }
         $this->options['connect_timeout'] = Config::get('setting.connectTimeOut');
+        $this->options['timeout'] = Config::get('setting.responseTimeOut');
     }
 
     public function getRedisClient()
@@ -143,6 +144,7 @@ abstract class BaseSpider
             return $response->getBody()->getContents();
         } catch (\Exception $e) {
             $this->getRedisClient()->rpush($this->requestQueue, $url);
+            echo "catch exception when getting url content of {$url}\n";
             echo $e->getMessage();
             exit(0);
         }

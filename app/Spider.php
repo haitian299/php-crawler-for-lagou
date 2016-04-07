@@ -484,45 +484,57 @@ class Spider extends BaseSpider
     {
         $attributes = [];
         $crawler = new Crawler($this->getUrlContent($url));
-        $attributes['id'] = intval(filter_var($url, FILTER_SANITIZE_NUMBER_INT));
-        $attributes['address'] = trim($crawler->filterXPath('//dl[@class="job_company"]/dd[1]/div[1]')->text());
-        $rawDetail = $crawler->filterXPath('//dd[@class="job_bt"]')->html();
-        $attributes['detail'] = trim(str_replace('<h3 class="description">职位描述</h3>', '', $rawDetail));
-        $this->getRedisClient()->lpush($this->jobQueue, json_encode($attributes));
+        try {
+            $attributes['id'] = intval(filter_var($url, FILTER_SANITIZE_NUMBER_INT));
+            $attributes['address'] = trim($crawler->filterXPath('//dl[@class="job_company"]/dd[1]/div[1]')->text());
+            $rawDetail = $crawler->filterXPath('//dd[@class="job_bt"]')->html();
+            $attributes['detail'] = trim(str_replace('<h3 class="description">职位描述</h3>', '', $rawDetail));
+            $this->getRedisClient()->lpush($this->jobQueue, json_encode($attributes));
+        } catch (\Exception $e) {
+            echo "catch exception when parsing {$url}\n";
+            $this->getRedisClient()->lpush($this->requestQueue, $url);
+            exit(0);
+        }
     }
 
     protected function parseCompanyDetailPage($url)
     {
         $attributes = [];
         $crawler = new Crawler($this->getUrlContent($url));
-        $attributes['id'] = intval(filter_var($url, FILTER_SANITIZE_NUMBER_INT));
-        $jobProcessRateTimely = trim($crawler
-            ->filterXPath('//div[@class="company_data"]/ul/li[2]/strong')->text());
-        if ($jobProcessRateTimely == '暂无') {
-            $attributes['job_process_rate_timely'] = null;
-        } else {
-            $attributes['job_process_rate_timely'] = intval($jobProcessRateTimely);
-        }
-        $daysCostToProcess = trim($crawler
-            ->filterXPath('//div[@class="company_data"]/ul/li[3]/strong')->text());
-        if ($daysCostToProcess == '暂无') {
-            $attributes['days_cost_to_process'] = null;
-        } else {
-            $attributes['days_cost_to_process'] = intval($daysCostToProcess);
-        }
+        try {
+            $attributes['id'] = intval(filter_var($url, FILTER_SANITIZE_NUMBER_INT));
+            $jobProcessRateTimely = trim($crawler
+                ->filterXPath('//div[@class="company_data"]/ul/li[2]/strong')->text());
+            if ($jobProcessRateTimely == '暂无') {
+                $attributes['job_process_rate_timely'] = null;
+            } else {
+                $attributes['job_process_rate_timely'] = intval($jobProcessRateTimely);
+            }
+            $daysCostToProcess = trim($crawler
+                ->filterXPath('//div[@class="company_data"]/ul/li[3]/strong')->text());
+            if ($daysCostToProcess == '暂无') {
+                $attributes['days_cost_to_process'] = null;
+            } else {
+                $attributes['days_cost_to_process'] = intval($daysCostToProcess);
+            }
 
-        $companyIndustryString = $crawler->filterXPath('//i[@class="type"]')->siblings()->text();
-        $attributes['industries'] = [];
-        foreach (explode(',', $companyIndustryString) as $industry) {
-            $attributes['industries'][] = trim($industry);
-        }
+            $companyIndustryString = $crawler->filterXPath('//i[@class="type"]')->siblings()->text();
+            $attributes['industries'] = [];
+            foreach (explode(',', $companyIndustryString) as $industry) {
+                $attributes['industries'][] = trim($industry);
+            }
 
-        $companyLabelArray = $crawler->filterXPath('//div[@class="tags_warp"]//li')->extract('_text');
-        $attributes['labels'] = [];
-        foreach ($companyLabelArray as $label) {
-            $attributes['labels'][] = trim($label);
+            $companyLabelArray = $crawler->filterXPath('//div[@class="tags_warp"]//li')->extract('_text');
+            $attributes['labels'] = [];
+            foreach ($companyLabelArray as $label) {
+                $attributes['labels'][] = trim($label);
+            }
+            $this->getRedisClient()->lpush($this->companyQueue, json_encode($attributes));
+        } catch (\Exception $e) {
+            echo "catch exception when parsing {$url}\n";
+            $this->getRedisClient()->lpush($this->requestQueue, $url);
+            exit(0);
         }
-        $this->getRedisClient()->lpush($this->companyQueue, json_encode($attributes));
     }
 
     protected function parseUrlFromRequestQueue()
@@ -557,13 +569,12 @@ class Spider extends BaseSpider
             $guzzle = new Guzzle();
             $response = $guzzle->request('GET', $proxyApi);
             $content = $response->getBody()->getContents();
-            $jsonContent = json_decode($content, true);
-            $proxies = $jsonContent['result'];
-            foreach ($proxies as $proxy) {
-                if($proxy['transfer_time'] < 1){
-                    $this->getRedisClient()->lpush($this->proxyQueue, 'tcp://'.$proxy['ip:port']);
-                }
+            preg_match_all('/(\d+)\.(\d+)\.(\d+)\.(\d+)\:(\d+)/', $content, $matches);
+            $proxies = [];
+            foreach($matches[0] as $match){
+                $proxies[] = 'tcp://'.$match;
             }
+            $this->getRedisClient()->lpush($this->proxyQueue, $proxies);
         } else {
             die("please set proxy api if you want to use proxy\n");
         }
@@ -639,15 +650,17 @@ class Spider extends BaseSpider
     public function bootstrap()
     {
         if (Capsule::table('log')->where('name', '=', 'bootstrap')->count() == 0) {
-            if (Config::get('setting.useProxy')) {
-                $this->loadProxies();
-            }
             $this->crawlJobType();
             $this->crawlFilterParameters();
             $this->log('bootstrap');
             $this->initRequestQueue();
         }
         $this->loadFilters();
+        if (Config::get('setting.useProxy')) {
+            if($this->getRedisClient()->llen($this->proxyQueue) < Config::get('setting.proxyMinimumCount')){
+                $this->loadProxies();
+            }
+        }
     }
 
     public function startToCrawl()
