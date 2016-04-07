@@ -492,6 +492,8 @@ class Spider extends BaseSpider
             $this->getRedisClient()->lpush($this->jobQueue, json_encode($attributes));
         } catch (\Exception $e) {
             echo "catch exception when parsing {$url}\n";
+            echo $e->getMessage();
+            echo "line: ".$e->getLine();
             $this->getRedisClient()->lpush($this->requestQueue, $url);
             exit(0);
         }
@@ -532,6 +534,8 @@ class Spider extends BaseSpider
             $this->getRedisClient()->lpush($this->companyQueue, json_encode($attributes));
         } catch (\Exception $e) {
             echo "catch exception when parsing {$url}\n";
+            echo $e->getMessage();
+            echo "line: ".$e->getLine();
             $this->getRedisClient()->lpush($this->requestQueue, $url);
             exit(0);
         }
@@ -631,7 +635,7 @@ class Spider extends BaseSpider
                     if (pcntl_wifexited($status)) {
                         $message = 'successfully';
                     }
-                    echo "--------process exit {$message}--------\n";
+                    echo date("H:i:s")."--------process exit {$message}--------\n";
                 }
             } else {
                 echo "single process\n";

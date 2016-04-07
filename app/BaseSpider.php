@@ -146,6 +146,7 @@ abstract class BaseSpider
             $this->getRedisClient()->rpush($this->requestQueue, $url);
             echo "catch exception when getting url content of {$url}\n";
             echo $e->getMessage();
+            echo "line: ".$e->getLine();
             exit(0);
         }
     }
