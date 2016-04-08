@@ -7,7 +7,6 @@
  * Time: 下午2:24
  */
 use GuzzleHttp\Client as Guzzle;
-use GuzzleHttp\Exception\ConnectException;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Predis\Client as Redis;
 
@@ -129,30 +128,22 @@ abstract class BaseSpider
 
     protected function getUrlContent($url, $options = null)
     {
-        try {
-            if (empty($options)) {
-                $options = $this->getOptions();
-            }
-            $guzzle = new Guzzle();
-            $response = $guzzle->request('GET', $url, $options);
-            if ($response->getStatusCode() != 200) {
-                throw new \Exception("failed to get url content of {$url} with code {$response->getStatusCode()}\n");
-            }
-            $this->getRedisClient()->sadd($this->alreadyRequestedUrlSet, $url);
-            if (key_exists('proxy', $options)) {
-                if (!empty($options['proxy'])) {
-                    $this->getRedisClient()->lpush($this->proxyQueue, $options['proxy']);
-                }
-            }
-
-            return $response->getBody()->getContents();
-        } catch (\Exception $e) {
-            $this->getRedisClient()->rpush($this->requestQueue, $url);
-            echo "catch exception when getting url content of {$url}\n";
-            echo $e->getMessage();
-            echo "line: " . $e->getLine();
-            exit(0);
+        if (empty($options)) {
+            $options = $this->getOptions();
         }
+        $guzzle = new Guzzle();
+        $response = $guzzle->request('GET', $url, $options);
+        if ($response->getStatusCode() != 200) {
+            throw new \Exception("failed to get url content of {$url} with code {$response->getStatusCode()}\n");
+        }
+        $this->getRedisClient()->sadd($this->alreadyRequestedUrlSet, $url);
+        if (key_exists('proxy', $options)) {
+            if (!empty($options['proxy'])) {
+                $this->getRedisClient()->lpush($this->proxyQueue, $options['proxy']);
+            }
+        }
+
+        return $response->getBody()->getContents();
     }
 
     public function initRequestQueue($url = null)

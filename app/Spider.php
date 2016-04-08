@@ -484,86 +484,81 @@ class Spider extends BaseSpider
     {
         $attributes = [];
         $crawler = new Crawler($this->getUrlContent($url));
-        try {
-            $attributes['id'] = intval(filter_var($url, FILTER_SANITIZE_NUMBER_INT));
-            $attributes['address'] = trim($crawler->filterXPath('//dl[@class="job_company"]/dd[1]/div[1]')->text());
-            $rawDetail = $crawler->filterXPath('//dd[@class="job_bt"]')->html();
-            $attributes['detail'] = trim(str_replace('<h3 class="description">职位描述</h3>', '', $rawDetail));
-            $this->getRedisClient()->lpush($this->jobQueue, json_encode($attributes));
-        } catch (\Exception $e) {
-            echo "catch exception when parsing {$url}\n";
-            echo $e->getMessage();
-            echo "line: " . $e->getLine();
-            $this->getRedisClient()->lpush($this->requestQueue, $url);
-            exit(0);
-        }
+        $attributes['id'] = intval(filter_var($url, FILTER_SANITIZE_NUMBER_INT));
+        $attributes['address'] = trim($crawler->filterXPath('//dl[@class="job_company"]/dd[1]/div[1]')->text());
+        $rawDetail = $crawler->filterXPath('//dd[@class="job_bt"]')->html();
+        $attributes['detail'] = trim(str_replace('<h3 class="description">职位描述</h3>', '', $rawDetail));
+        $this->getRedisClient()->lpush($this->jobQueue, json_encode($attributes));
     }
 
     protected function parseCompanyDetailPage($url)
     {
         $attributes = [];
         $crawler = new Crawler($this->getUrlContent($url));
-        try {
-            $attributes['id'] = intval(filter_var($url, FILTER_SANITIZE_NUMBER_INT));
-            $jobProcessRateTimely = trim($crawler
-                ->filterXPath('//div[@class="company_data"]/ul/li[2]/strong')->text());
-            if ($jobProcessRateTimely == '暂无') {
-                $attributes['job_process_rate_timely'] = null;
-            } else {
-                $attributes['job_process_rate_timely'] = intval($jobProcessRateTimely);
-            }
-            $daysCostToProcess = trim($crawler
-                ->filterXPath('//div[@class="company_data"]/ul/li[3]/strong')->text());
-            if ($daysCostToProcess == '暂无') {
-                $attributes['days_cost_to_process'] = null;
-            } else {
-                $attributes['days_cost_to_process'] = intval($daysCostToProcess);
-            }
-
-            $companyIndustryString = $crawler->filterXPath('//i[@class="type"]')->siblings()->text();
-            $attributes['industries'] = [];
-            foreach (explode(',', $companyIndustryString) as $industry) {
-                $attributes['industries'][] = trim($industry);
-            }
-
-            $companyLabelArray = $crawler->filterXPath('//div[@class="tags_warp"]//li')->extract('_text');
-            $attributes['labels'] = [];
-            foreach ($companyLabelArray as $label) {
-                $attributes['labels'][] = trim($label);
-            }
-            $this->getRedisClient()->lpush($this->companyQueue, json_encode($attributes));
-        } catch (\Exception $e) {
-            echo "catch exception when parsing {$url}\n";
-            echo $e->getMessage();
-            echo "line: " . $e->getLine();
-            $this->getRedisClient()->lpush($this->requestQueue, $url);
-            exit(0);
+        $attributes['id'] = intval(filter_var($url, FILTER_SANITIZE_NUMBER_INT));
+        $jobProcessRateTimely = trim($crawler
+            ->filterXPath('//div[@class="company_data"]/ul/li[2]/strong')->text());
+        if ($jobProcessRateTimely == '暂无') {
+            $attributes['job_process_rate_timely'] = null;
+        } else {
+            $attributes['job_process_rate_timely'] = intval($jobProcessRateTimely);
         }
+        $daysCostToProcess = trim($crawler
+            ->filterXPath('//div[@class="company_data"]/ul/li[3]/strong')->text());
+        if ($daysCostToProcess == '暂无') {
+            $attributes['days_cost_to_process'] = null;
+        } else {
+            $attributes['days_cost_to_process'] = intval($daysCostToProcess);
+        }
+
+        $companyIndustryString = $crawler->filterXPath('//i[@class="type"]')->siblings()->text();
+        $attributes['industries'] = [];
+        foreach (explode(',', $companyIndustryString) as $industry) {
+            $attributes['industries'][] = trim($industry);
+        }
+
+        $companyLabelArray = $crawler->filterXPath('//div[@class="tags_warp"]//li')->extract('_text');
+        $attributes['labels'] = [];
+        foreach ($companyLabelArray as $label) {
+            $attributes['labels'][] = trim($label);
+        }
+        $this->getRedisClient()->lpush($this->companyQueue, json_encode($attributes));
     }
 
     protected function parseUrlFromRequestQueue()
     {
         $requestUrl = $this->getRedisClient()->rpop($this->requestQueue);
-        if (!empty($requestUrl)) {
-            if (preg_match($this->jobDetailPageUrlPattern, $requestUrl)) {
-                echo "start to parse job detail page {$requestUrl}\n";
-                $this->parseJobDetailPage($requestUrl);
-            } elseif (preg_match($this->companyDetailPageUrlPattern, $requestUrl)) {
-                echo "start to parse company detail page {$requestUrl}\n";
-                $this->parseCompanyDetailPage($requestUrl);
-            } else {
-                parse_str($requestUrl, $queryArray);
-                if (array_key_exists('pn', $queryArray)) {
-                    echo "start to parse job list page {$requestUrl}\n";
-                    $this->parseJobListAjaxUrl($requestUrl);
+
+        try {
+            if (!empty($requestUrl)) {
+                if (preg_match($this->jobDetailPageUrlPattern, $requestUrl)) {
+                    echo "start to parse job detail page {$requestUrl}\n";
+                    $this->parseJobDetailPage($requestUrl);
+                } elseif (preg_match($this->companyDetailPageUrlPattern, $requestUrl)) {
+                    echo "start to parse company detail page {$requestUrl}\n";
+                    $this->parseCompanyDetailPage($requestUrl);
                 } else {
-                    echo "start to parse job list page without page number {$requestUrl}\n";
-                    $this->parseJobListUrlWithoutPageNumber($requestUrl);
+                    parse_str($requestUrl, $queryArray);
+                    if (array_key_exists('pn', $queryArray)) {
+                        echo "start to parse job list page {$requestUrl}\n";
+                        $this->parseJobListAjaxUrl($requestUrl);
+                    } else {
+                        echo "start to parse job list page without page number {$requestUrl}\n";
+                        $this->parseJobListUrlWithoutPageNumber($requestUrl);
+                    }
                 }
+            } else {
+                echo "empty request url\n";
             }
-        } else {
-            echo "empty request url\n";
+        } catch (\Exception $e) {
+            echo "catch exception when parsing url {$requestUrl}\n";
+            echo $e->getMessage() . "\n";
+            echo $e->getFile() . "\n";
+            echo $e->getLine() . "\n";
+            $this->getRedisClient()->rpush($this->requestQueue, $requestUrl);
+            exit(0);
         }
+
     }
 
     public function loadProxies()
@@ -614,7 +609,7 @@ class Spider extends BaseSpider
                 echo "all companies are saved\n";
                 break;
             }
-            try{
+            try {
                 echo "saving company to database\n";
                 $company = json_decode($this->getRedisClient()->rpop($this->companyQueue), true);
                 $this->saveCompanyToDatabase($company);
