@@ -32,6 +32,8 @@ class Spider extends BaseSpider
 
     protected $companyQueue = 'companyQueue';
 
+    protected $removedJobPattern = '/该信息已经被删除鸟/';
+
     protected $dataTable = [
         'job'                  => 'lagou_job',
         'company'              => 'lagou_company',
@@ -483,7 +485,11 @@ class Spider extends BaseSpider
     protected function parseJobDetailPage($url)
     {
         $attributes = [];
-        $crawler = new Crawler($this->getUrlContent($url));
+        $content = $this->getUrlContent($url);
+        if (preg_match($this->removedJobPattern, $content)) {
+            throw new \Exception("{$url} this job is removed\n", 444);
+        }
+        $crawler = new Crawler($content);
         $attributes['id'] = intval(filter_var($url, FILTER_SANITIZE_NUMBER_INT));
         $attributes['address'] = trim($crawler->filterXPath('//dl[@class="job_company"]/dd[1]/div[1]')->text());
         $rawDetail = $crawler->filterXPath('//dd[@class="job_bt"]')->html();
@@ -551,6 +557,10 @@ class Spider extends BaseSpider
                 echo "empty request url\n";
             }
         } catch (\Exception $e) {
+            if ($e->getCode() == 444) {
+                echo $e->getMessage() . "\n";
+                exit(0);
+            }
             echo "catch exception when parsing url {$requestUrl}\n";
             echo $e->getMessage() . "\n";
             echo $e->getFile() . "\n";
