@@ -683,11 +683,22 @@ class Spider extends BaseSpider
                 $this->loadProxies();
             }
         }
-        if (Capsule::table('log')->where('name', '=', 'bootstrap')->count() == 0) {
-            $this->crawlJobType();
-            $this->crawlFilterParameters();
-            $this->log('bootstrap');
-            $this->initRequestQueue();
+        while(true){
+            try{
+                if (Capsule::table('log')->where('name', '=', 'bootstrap')->count() == 0) {
+                    $this->crawlJobType();
+                    $this->crawlFilterParameters();
+                    $this->initRequestQueue();
+                    $this->log('bootstrap');
+                }
+                break;
+            } catch (\Exception $e) {
+                echo "catch exception when bootstrapping\n";
+                echo $e->getMessage()."\n";
+                echo $e->getFile()."\n";
+                echo $e->getLine()."\n";
+                echo "bootstrap again\n";
+            }
         }
         $this->loadFilters();
     }
