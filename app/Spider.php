@@ -683,6 +683,11 @@ class Spider extends BaseSpider
 
     public function bootstrap()
     {
+        if (Config::get('setting.useProxy')) {
+            if ($this->getRedisClient()->llen($this->proxyQueue) < Config::get('setting.proxyMinimumCount')) {
+                $this->loadProxies();
+            }
+        }
         if (Capsule::table('log')->where('name', '=', 'bootstrap')->count() == 0) {
             $this->crawlJobType();
             $this->crawlFilterParameters();
@@ -690,11 +695,6 @@ class Spider extends BaseSpider
             $this->initRequestQueue();
         }
         $this->loadFilters();
-        if (Config::get('setting.useProxy')) {
-            if ($this->getRedisClient()->llen($this->proxyQueue) < Config::get('setting.proxyMinimumCount')) {
-                $this->loadProxies();
-            }
-        }
     }
 
     public function startToCrawl()
