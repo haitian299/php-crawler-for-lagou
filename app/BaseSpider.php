@@ -136,6 +136,9 @@ abstract class BaseSpider
         if ($response->getStatusCode() != 200) {
             throw new \Exception("failed to get url content of {$url} with code {$response->getStatusCode()}\n");
         }
+        if ($response->getBody()->getSize() == 0) {
+            throw new \Exception("{$url} response size is zero\n");
+        }
         $this->getRedisClient()->sadd($this->alreadyRequestedUrlSet, $url);
         if (key_exists('proxy', $options)) {
             if (!empty($options['proxy'])) {
