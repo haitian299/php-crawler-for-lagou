@@ -344,7 +344,7 @@ class Spider extends BaseSpider
             $count = count($dataToInsert);
             echo("saved {$count} items to table {$table}\n");
         } else {
-            echo("abnormal filter parameter data, length < 1. table: {$table}\n");
+            throw new \Exception("abnormal filter parameter data, length < 1. table: {$table}\n");
         }
     }
 
