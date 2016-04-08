@@ -574,7 +574,9 @@ class Spider extends BaseSpider
             foreach ($proxyArray as $proxy) {
                 $proxies[] = 'tcp://' . $proxy['ip:port'];
             }
-            $this->getRedisClient()->lpush($this->proxyQueue, $proxies);
+            if (!empty($proxies)) {
+                $this->getRedisClient()->lpush($this->proxyQueue, $proxies);
+            }
         } else {
             die("please set proxy api if you want to use proxy\n");
         }
@@ -683,8 +685,8 @@ class Spider extends BaseSpider
                 $this->loadProxies();
             }
         }
-        while(true){
-            try{
+        while (true) {
+            try {
                 if (Capsule::table('log')->where('name', '=', 'bootstrap')->count() == 0) {
                     $this->crawlJobType();
                     $this->crawlFilterParameters();
@@ -694,9 +696,9 @@ class Spider extends BaseSpider
                 break;
             } catch (\Exception $e) {
                 echo "catch exception when bootstrapping\n";
-                echo $e->getMessage()."\n";
-                echo $e->getFile()."\n";
-                echo $e->getLine()."\n";
+                echo $e->getMessage() . "\n";
+                echo $e->getFile() . "\n";
+                echo $e->getLine() . "\n";
                 echo "bootstrap again\n";
             }
         }
