@@ -555,7 +555,7 @@ class Spider extends BaseSpider
             echo $e->getMessage() . "\n";
             echo $e->getFile() . "\n";
             echo $e->getLine() . "\n";
-            $this->getRedisClient()->rpush($this->requestQueue, $requestUrl);
+            $this->getRedisClient()->lpush($this->requestQueue, $requestUrl);
             exit(0);
         }
 
