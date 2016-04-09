@@ -434,8 +434,16 @@ class Spider extends BaseSpider
                 }
                 $typeId = array_search($result->positionType, $this->filters[$this->dataTable['jobType']]);
                 if (!$typeId) {
-                    $typeId = null;
-                    $this->log("job->" . $result->positionId . ": not found first type->" . $result->positionType);
+                    if ($firstTypeId && !empty($result->positionType)) {
+                        $newType = JobType::create([
+                            'name'          => $result->positionType,
+                            'first_type_id' => $firstTypeId
+                        ]);
+                        $typeId = $newType->id;
+                    } else {
+                        $typeId = null;
+                        $this->log("job->" . $result->positionId . ": not found first type->" . $result->positionType);
+                    }
                 }
                 $expDemandId = array_search($result->workYear, $this->filters[$this->dataTable['filterDataTable']['gj']]);
                 if (!$expDemandId) {
