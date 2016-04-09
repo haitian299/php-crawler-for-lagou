@@ -29,6 +29,8 @@ abstract class BaseSpider
 
     protected $proxyQueue = 'proxyQueue';
 
+    protected $logQueue = 'logQueue';
+
     protected $options = [
         'headers' => [
             'Accept-Language' => 'zh-CN,zh;q=0.8,en;q=0.6',
@@ -166,9 +168,9 @@ abstract class BaseSpider
         }
         foreach ($item as $it) {
             if ($this->getRedisClient()->sismember($this->alreadyRequestedUrlSet, $it)) {
-                echo("{$it} is already requested, so pass\n");
+                $this->pushLog("{$it} is already requested, so pass");
             } else {
-                echo("pushed {$it} into request queue\n");
+                $this->pushLog("pushed {$it} into request queue");
                 $this->getRedisClient()->lpush($this->requestQueue, $it);
             }
         }
@@ -177,5 +179,12 @@ abstract class BaseSpider
     public function loadProxies()
     {
         //
+    }
+
+    public function pushLog($message)
+    {
+        if (!empty($message)) {
+            $this->getRedisClient()->lpush($this->logQueue, $message);
+        }
     }
 }

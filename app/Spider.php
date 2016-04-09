@@ -264,11 +264,11 @@ class Spider extends BaseSpider
     {
         if ($savedJob = Job::where('id', $job['id'])->first()) {
             $savedJob->update($job);
-            echo "updated job {$job['id']}\n";
+            $this->pushLog("updated job {$job['id']}");
 
             return $savedJob;
         } else {
-            echo "created job {$job['id']}\n";
+            $this->pushLog("created job {$job['id']}");
 
             return Job::create($job);
         }
@@ -288,9 +288,9 @@ class Spider extends BaseSpider
 
         if ($savedCompany = Company::where('id', $company['id'])->first()) {
             $savedCompany->update($company);
-            echo "updated company {$company['id']}\n";
+            $this->pushLog("updated company {$company['id']}");
         } else {
-            echo "created company {$company['id']}\n";
+            $this->pushLog("created company {$company['id']}");
             $savedCompany = Company::create($company);
         }
 
@@ -344,7 +344,7 @@ class Spider extends BaseSpider
             Capsule::table($table)->truncate();
             Capsule::table($table)->insert($dataToInsert);
             $count = count($dataToInsert);
-            echo("saved {$count} items to table {$table}\n");
+            $this->pushLog("saved {$count} items to table {$table}");
         } else {
             throw new \Exception("abnormal filter parameter data, length < 1. table: {$table}\n");
         }
@@ -379,7 +379,7 @@ class Spider extends BaseSpider
         foreach ($range as $pageNumber) {
             $urlsWithPageNumber[] = $url . 'pn=' . $pageNumber;
         }
-        echo("push {$totalPageCount} urls with page number into redis\n");
+        $this->pushLog("push {$totalPageCount} urls with page number into redis");
         $this->pushToRequestQueue($urlsWithPageNumber);
     }
 
@@ -390,12 +390,12 @@ class Spider extends BaseSpider
         $totalPageCount = $jsonContent->content->totalPageCount;
         $totalJobCount = $jsonContent->content->totalCount;
         if ($totalJobCount == 5000) {
-            echo "encounter max count 5000\n";
+            $this->pushLog("encounter max count 5000");
             $this->pushUrlsWithNewFilterToRedis($url);
         } elseif ($totalPageCount > 0) {
             $this->addPageNumberAndPushToRequestQueue($url, $totalPageCount);
         } else {
-            echo "miss match {$url} {$content} {$totalPageCount} {$totalJobCount}\n";
+            $this->pushLog("miss match {$url} {$content} {$totalPageCount} {$totalJobCount}");
         }
     }
 
@@ -538,33 +538,33 @@ class Spider extends BaseSpider
         try {
             if (!empty($requestUrl)) {
                 if (preg_match($this->jobDetailPageUrlPattern, $requestUrl)) {
-                    echo "start to parse job detail page {$requestUrl}\n";
+                    $this->pushLog("start to parse job detail page {$requestUrl}");
                     $this->parseJobDetailPage($requestUrl);
                 } elseif (preg_match($this->companyDetailPageUrlPattern, $requestUrl)) {
-                    echo "start to parse company detail page {$requestUrl}\n";
+                    $this->pushLog("start to parse company detail page {$requestUrl}");
                     $this->parseCompanyDetailPage($requestUrl);
                 } else {
                     parse_str($requestUrl, $queryArray);
                     if (array_key_exists('pn', $queryArray)) {
-                        echo "start to parse job list page {$requestUrl}\n";
+                        $this->pushLog("start to parse job list page {$requestUrl}");
                         $this->parseJobListAjaxUrl($requestUrl);
                     } else {
-                        echo "start to parse job list page without page number {$requestUrl}\n";
+                        $this->pushLog("start to parse job list page without page number {$requestUrl}");
                         $this->parseJobListUrlWithoutPageNumber($requestUrl);
                     }
                 }
             } else {
-                echo "empty request url\n";
+                $this->pushLog("empty request url");
             }
         } catch (\Exception $e) {
             if ($e->getCode() == 444) {
-                echo $e->getMessage() . "\n";
+                $this->pushLog($e->getMessage());
                 exit(0);
             }
-            echo "catch exception when parsing url {$requestUrl}\n";
-            echo $e->getMessage() . "\n";
-            echo $e->getFile() . "\n";
-            echo $e->getLine() . "\n";
+            $this->pushLog("catch exception when parsing url {$requestUrl}");
+            $this->pushLog($e->getMessage());
+            $this->pushLog($e->getFile());
+            $this->pushLog($e->getLine());
             $this->getRedisClient()->lpush($this->requestQueue, $requestUrl);
             exit(0);
         }
@@ -600,16 +600,16 @@ class Spider extends BaseSpider
                 die("stop");
             }
             if ($this->getRedisClient()->llen($this->jobQueue) == 0) {
-                echo "all jobs are saved\n";
+                $this->pushLog("all jobs are saved");
                 break;
             }
             try {
-                echo "saving job to database\n";
+                $this->pushLog("saving job to database");
                 $job = json_decode($this->getRedisClient()->rpop($this->jobQueue), true);
                 $this->saveJobToDatabase($job);
             } catch (\Exception $e) {
-                echo "catch error when saving job to database\n";
-                echo $e->getMessage();
+                $this->pushLog("catch error when saving job to database");
+                $this->pushLog($e->getMessage());
                 die();
             }
         }
@@ -618,16 +618,16 @@ class Spider extends BaseSpider
                 die("stop");
             }
             if ($this->getRedisClient()->llen($this->companyQueue) == 0) {
-                echo "all companies are saved\n";
+                $this->pushLog("all companies are saved");
                 break;
             }
             try {
-                echo "saving company to database\n";
+                $this->pushLog("saving company to database");
                 $company = json_decode($this->getRedisClient()->rpop($this->companyQueue), true);
                 $this->saveCompanyToDatabase($company);
             } catch (\Exception $e) {
-                echo "catch error when saving company to database\n";
-                echo $e->getMessage();
+                $this->pushLog("catch error when saving company to database");
+                $this->pushLog($e->getMessage());
                 die();
             }
 
@@ -647,7 +647,7 @@ class Spider extends BaseSpider
 
             $requestQueueLength = $this->getRedisClient()->llen($this->requestQueue);
             if ($requestQueueLength == 0) {
-                echo "request queue is empty, finish\n";
+                $this->pushLog("request queue is empty, finish");
                 break;
             }
             $connectionCount = min($requestQueueLength, $this->maxConnectionCount);
@@ -656,7 +656,7 @@ class Spider extends BaseSpider
                 for ($i = 0; $i < $connectionCount; $i++) {
                     $pid = pcntl_fork();
                     if ($pid == -1) {
-                        echo "fail to fork\n";
+                        $this->pushLog("fail to fork");
                         exit(0);
                     }
 
@@ -671,10 +671,10 @@ class Spider extends BaseSpider
                     if (pcntl_wifexited($status)) {
                         $message = 'successfully';
                     }
-                    echo date("H:i:s") . "--------process exit {$message}--------\n";
+                    $this->pushLog(date("H:i:s") . "--------process exit {$message}--------");
                 }
             } else {
-                echo "single process\n";
+                $this->pushLog("single process");
                 $this->parseUrlFromRequestQueue();
             }
         }
@@ -705,11 +705,11 @@ class Spider extends BaseSpider
                 }
                 break;
             } catch (\Exception $e) {
-                echo "catch exception when bootstrapping\n";
-                echo $e->getMessage() . "\n";
-                echo $e->getFile() . "\n";
-                echo $e->getLine() . "\n";
-                echo "bootstrap again\n";
+                $this->pushLog("catch exception when bootstrapping");
+                $this->pushLog($e->getMessage());
+                $this->pushLog($e->getFile());
+                $this->pushLog($e->getLine());
+                $this->pushLog("bootstrap again");
             }
         }
         $this->loadFilters();
