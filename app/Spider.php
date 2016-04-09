@@ -79,6 +79,13 @@ class Spider extends BaseSpider
             }
             $this->filters[$filterTableName] = $dataArray;
         }
+        foreach ($this->filters as $filter) {
+            if (empty($filter)) {
+                Capsule::table('log')->where('name', '=', 'bootstrap')->delete();
+                $this->pushLog("has empty filter, bootstrap again");
+                exit(0);
+            }
+        }
     }
 
     protected function crawlFilterParameters($url = 'http://www.lagou.com/zhaopin/')
