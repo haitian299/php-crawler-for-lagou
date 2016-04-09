@@ -652,30 +652,25 @@ class Spider extends BaseSpider
             }
             $connectionCount = min($requestQueueLength, $this->maxConnectionCount);
 
-            if ($connectionCount > 1) {
-                for ($i = 0; $i < $connectionCount; $i++) {
-                    $pid = pcntl_fork();
-                    if ($pid == -1) {
-                        $this->pushLog("fail to fork");
-                        exit(0);
-                    }
+            for ($i = 0; $i < $connectionCount; $i++) {
+                $pid = pcntl_fork();
+                if ($pid == -1) {
+                    $this->pushLog("fail to fork");
+                    exit(0);
+                }
 
-                    if (!$pid) {
-                        $this->parseUrlFromRequestQueue();
-                        exit(0);
-                    }
+                if (!$pid) {
+                    $this->parseUrlFromRequestQueue();
+                    exit(0);
                 }
-                while (pcntl_waitpid(0, $status) != -1) {
-                    $message = 'abnormally!!!!';
-                    $status = pcntl_wexitstatus($status);
-                    if (pcntl_wifexited($status)) {
-                        $message = 'successfully';
-                    }
-                    $this->pushLog(date("H:i:s") . "--------process exit {$message}--------");
+            }
+            while (pcntl_waitpid(0, $status) != -1) {
+                $message = 'abnormally!!!!';
+                $status = pcntl_wexitstatus($status);
+                if (pcntl_wifexited($status)) {
+                    $message = 'successfully';
                 }
-            } else {
-                $this->pushLog("single process");
-                $this->parseUrlFromRequestQueue();
+                $this->pushLog(date("H:i:s") . "--------process exit {$message}--------");
             }
         }
     }
