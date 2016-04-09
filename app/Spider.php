@@ -82,8 +82,7 @@ class Spider extends BaseSpider
         foreach ($this->filters as $filter) {
             if (empty($filter)) {
                 Capsule::table('log')->where('name', '=', 'bootstrap')->delete();
-                $this->pushLog("has empty filter, bootstrap again");
-                exit(0);
+                throw new \Exception("has empty filter, bootstrap again");
             }
         }
     }
@@ -769,6 +768,7 @@ class Spider extends BaseSpider
                     $this->initRequestQueue();
                     $this->log('bootstrap');
                 }
+                $this->loadFilters();
                 break;
             } catch (\Exception $e) {
                 $this->pushLog("catch exception when bootstrapping");
@@ -778,7 +778,6 @@ class Spider extends BaseSpider
                 $this->pushLog("bootstrap again");
             }
         }
-        $this->loadFilters();
     }
 
     public function startToCrawl()
