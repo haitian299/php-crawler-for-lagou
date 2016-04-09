@@ -11,5 +11,6 @@ return [
     'proxyApi'           => getenv('PROXY_API'),
     'proxyMinimumCount'  => 150,
     'connectTimeOut'     => 5, //Use 0 to wait indefinitely
-    'responseTimeOut'    => 5
+    'responseTimeOut'    => 5,
+    'maxLogCount'        => 5000
 ];

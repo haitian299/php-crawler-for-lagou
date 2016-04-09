@@ -186,5 +186,6 @@ abstract class BaseSpider
         if (!empty($message)) {
             $this->getRedisClient()->lpush($this->logQueue, $message);
         }
+        $this->getRedisClient()->ltrim($this->logQueue, 0, Config::get('setting.maxLogCount'));
     }
 }
