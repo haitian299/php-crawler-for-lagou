@@ -6,6 +6,12 @@
  * Date: 16/3/18
  * Time: 下午8:50
  */
+use App\Models\City;
+use App\Models\ContractType;
+use App\Models\EducationDemand;
+use App\Models\ExperienceDemand;
+use App\Models\JobFirstType;
+use App\Models\JobType;
 use Symfony\Component\DomCrawler\Crawler;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Carbon\Carbon;
@@ -116,11 +122,10 @@ class Spider extends BaseSpider
             $firstTypeArray = $m->filterXPath('//h2')->extract(['_text']);
             if (!empty($firstTypeArray)) {
                 $firstType = trim($firstTypeArray[0]);
-                $firstTypeId = Capsule::table($this->dataTable['jobFirstType'])->insertGetId([
-                    'name'       => $firstType,
-                    'created_at' => Carbon::now(),
-                    'updated_at' => Carbon::now()
+                $newFirstType = JobFirstType::create([
+                    'name' => $firstType
                 ]);
+                $firstTypeId = $newFirstType->id;
                 $jobTypes = $m->filterXPath('//dt')->extract(['_text']);
                 if (!empty($jobTypes)) {
                     $jobTypesToInsert = [];
@@ -131,13 +136,12 @@ class Spider extends BaseSpider
                         }
                         $jobTypesToInsert[] = [
                             'name'          => $jobType,
-                            'first_type_id' => $firstTypeId,
-                            'created_at'    => Carbon::now(),
-                            'updated_at'    => Carbon::now()
+                            'first_type_id' => $firstTypeId
                         ];
                     }
                     foreach ($jobTypesToInsert as $key => $jobType) {
-                        $jobTypeId = Capsule::table($this->dataTable['jobType'])->insertGetId($jobType);
+                        $newType = JobType::create($jobType);
+                        $jobTypeId = $newType->id;
                         $index = $key + 1;
                         $jobKinds = $m->filterXPath("//dd[{$index}]/a")->extract(['_text']);
                         $jobKindsToInsert = [];
@@ -418,22 +422,69 @@ class Spider extends BaseSpider
 
     protected function parseJobJsonArray($results)
     {
+        Capsule::connection()->reconnect();
         $jobs = [];
         $companies = [];
         foreach ($results as $result) {
             if (!$this->getRedisClient()->sismember($this->alreadySavedJobSet, $result->positionId)) {
+                $firstTypeId = array_search($result->positionFirstType, $this->filters[$this->dataTable['jobFirstType']]);
+                if (!$firstTypeId) {
+                    $firstTypeId = null;
+                    $this->log("job->" . $result->positionId . ": not found first type->" . $result->positionFirstType);
+                }
+                $typeId = array_search($result->positionType, $this->filters[$this->dataTable['jobType']]);
+                if (!$typeId) {
+                    $typeId = null;
+                    $this->log("job->" . $result->positionId . ": not found first type->" . $result->positionType);
+                }
+                $expDemandId = array_search($result->workYear, $this->filters[$this->dataTable['filterDataTable']['gj']]);
+                if (!$expDemandId) {
+                    if (!empty($result->workYear)) {
+                        $newExpDemand = ExperienceDemand::create(['name' => $result->workYear]);
+                        $expDemandId = $newExpDemand->id;
+                    } else {
+                        $expDemandId = null;
+                    }
+                }
+                $cityId = array_search($result->city, $this->filters[$this->dataTable['filterDataTable']['city']]);
+                if (!$cityId) {
+                    if (!empty($result->city)) {
+                        $newCity = City::create(["name" => $result->city]);
+                        $cityId = $newCity->id;
+                    } else {
+                        $cityId = null;
+                    }
+                }
+                $education = array_search($result->education, $this->filters[$this->dataTable['filterDataTable']['xl']]);
+                if (!$education) {
+                    if (!empty($result->education)) {
+                        $newEducation = EducationDemand::create(['name' => $result->education]);
+                        $education = $newEducation->id;
+                    } else {
+                        $education = null;
+                    }
+                }
+                $contract = array_search($result->jobNature, $this->filters[$this->dataTable['filterDataTable']['gx']]);
+                if (!$contract) {
+                    if (!empty($result->jobNature)) {
+                        $newContract = ContractType::create(['name' => $result->jobNature]);
+                        $contract = $newContract->id;
+                    } else {
+                        $contract = null;
+                    }
+                }
                 $jobs[] = [
                     'id'                   => $result->positionId,
                     'name'                 => $result->positionName,
-                    'type_id'              => array_search($result->positionType, $this->filters[$this->dataTable['jobType']]),
+                    'type_id'              => $typeId,
                     'salary_min'           => $this->getSalary($result->salary, 'min'),
                     'salary_max'           => $this->getSalary($result->salary, 'max'),
-                    'first_type_id'        => array_search($result->positionFirstType, $this->filters[$this->dataTable['jobFirstType']]),
-                    'experience_demand_id' => array_search($result->workYear, $this->filters[$this->dataTable['filterDataTable']['gj']]),
-                    'city_id'              => array_search($result->city, $this->filters[$this->dataTable['filterDataTable']['city']]),
-                    'education_demand_id'  => array_search($result->education, $this->filters[$this->dataTable['filterDataTable']['xl']]),
+                    'first_type_id'        => $firstTypeId,
+                    'experience_demand_id' => $expDemandId,
+                    'city_id'              => $cityId,
+                    'education_demand_id'  => $education,
                     'company_id'           => $result->companyId,
-                    'contract_type_id'     => array_search($result->jobNature, $this->filters[$this->dataTable['filterDataTable']['gx']]),
+                    'contract_type_id'     => $contract,
                     'advantage'            => $result->positionAdvantage,
                     'create_time'          => $result->createTime,
                 ];
@@ -447,14 +498,19 @@ class Spider extends BaseSpider
                 $this->getRedisClient()->sadd($this->alreadySavedJobSet, $result->positionId);
                 $this->pushToRequestQueue(sprintf($this->jobUrl, $result->positionId));
                 if (!$this->getRedisClient()->sismember($this->alreadySavedCompanySet, $result->companyId)) {
+                    $finance = array_search($financeStage, $this->filters[$this->dataTable['filterDataTable']['jd']]);
+                    if (!$finance) {
+                        $finance = null;
+                        $this->log("company->" . $result->companyId . ": not found finance stage->" . $financeStage);
+                    }
                     $companies[] = [
                         'id'                    => $result->companyId,
                         'name'                  => $result->companyName,
                         'short_name'            => $result->companyShortName,
                         'logo'                  => 'http://www.lagou.com/' . $result->companyLogo,
-                        'city_id'               => array_search($result->city, $this->filters[$this->dataTable['filterDataTable']['city']]),
+                        'city_id'               => $cityId,
                         'population'            => $result->companySize,
-                        'finance_stage_id'      => array_search($financeStage, $this->filters[$this->dataTable['filterDataTable']['jd']]),
+                        'finance_stage_id'      => $finance,
                         'finance_stage_process' => $financeStageProcess,
                     ];
                     $this->getRedisClient()->sadd($this->alreadySavedCompanySet, $result->companyId);
