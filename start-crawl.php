@@ -19,7 +19,6 @@ echo "crawler start\n";
 $startTime = time();
 
 $spider = new Spider();
-$spider->createDatabase();
 $spider->startToCrawl();
 
 echo "crawler finished\n";

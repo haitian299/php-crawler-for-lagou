@@ -1,6 +1,4 @@
-<?php namespace App\Models;
-
-use Illuminate\Database\Eloquent\Model;
+<?php namespace App\DatabaseModels;
 
 /**
  * Created by PhpStorm.
@@ -8,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
  * Date: 16/3/30
  * Time: 下午9:00
  */
-class Job extends Model
+class Job extends BaseModel
 {
     protected $table = 'lagou_job';
 
