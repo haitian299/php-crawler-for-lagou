@@ -91,6 +91,8 @@ return [
             $table->tinyInteger('days_cost_to_process')->unsigned()->nullable();
             $table->string('finance_stage');
             $table->string('finance_stage_process')->nullable();
+            $table->string('industries');
+            $table->string('labels');
             $table->timestamps();
             $table->primary('id');
         },
