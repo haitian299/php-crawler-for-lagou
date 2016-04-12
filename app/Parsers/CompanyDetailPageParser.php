@@ -34,9 +34,11 @@ class CompanyDetailPageParser implements BaseParser
             $attributes['days_cost_to_process'] = intval($daysCostToProcess);
         }
 
-        $attributes['industries'] = $crawler->filterXPath('//i[@class="type"]')->siblings()->text();
+        $attributes['industries'] = trim($crawler->filterXPath('//i[@class="type"]')->siblings()->text());
 
-        $attributes['labels'] = $crawler->filterXPath('//div[@class="tags_warp"]//li')->extract('_text');
+        $labelArray = $crawler->filterXPath('//div[@class="tags_warp"]//li')->extract('_text');
+
+        $attributes['labels'] = implode(',', $labelArray);
 
         Company::updateOrCreate([
             'id' => $attributes['id']
