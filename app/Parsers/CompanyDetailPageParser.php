@@ -38,6 +38,10 @@ class CompanyDetailPageParser implements BaseParser
 
         $labelArray = $crawler->filterXPath('//div[@class="tags_warp"]//li')->extract('_text');
 
+        array_walk($labelArray, function (&$value) {
+            $value = trim($value);
+        });
+
         $attributes['labels'] = implode(',', $labelArray);
 
         Company::updateOrCreate([
