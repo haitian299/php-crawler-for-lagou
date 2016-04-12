@@ -19,15 +19,27 @@ class JobDetailPageParser implements BaseParser
     {
         $attributes = [];
         if (preg_match(static::$removedJobPattern, $content)) {
-            throw new \Exception("{$url} this job is removed\n", Config::get('spider.discardUrlExceptionCode'));
+            throw new \Exception(
+                "{$url} this job is removed\n",
+                Config::get('spider.discardUrlExceptionCode')
+            );
         }
         $crawler = new Crawler($content);
         $attributes['id'] = intval(filter_var($url, FILTER_SANITIZE_NUMBER_INT));
         $attributes['address'] = trim($crawler
             ->filterXPath('//dl[@class="job_company"]/dd[1]/div[1]')->text());
-        $rawDetail = $crawler->filterXPath('//dd[@class="job_bt"]')->html();
-        $attributes['detail'] = trim(str_replace('<h3 class="description">职位描述</h3>',
-            '', $rawDetail));
+        $rawDetailArray = $crawler->filterXPath('//dd[@class="job_bt"]')->children()->extract(['_text']);
+        array_walk($rawDetailArray, function (&$value) {
+            $value = trim($value);
+        });
+        $rawDetailArray = array_filter($rawDetailArray, function ($value) {
+            if (!empty($value) && $value != "职位描述") {
+                return true;
+            }
+
+            return false;
+        });
+        $attributes['detail'] = implode(',', $rawDetailArray);
         Job::updateOrCreate([
             'id' => $attributes['id']
         ], $attributes);
